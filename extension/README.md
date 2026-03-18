@@ -25,7 +25,8 @@ extension/
 ├── popup.html           ← Popup UI
 ├── popup.css            ← Styles (dark glassmorphism)
 ├── popup.js             ← All logic (auth, tasks, DOM)
-├── config.js            ← API_BASE_URL configuration
+├── logger.js            ← Comprehensive logging utility
+├── config.js            ← Configuration (API URL, log level)
 ├── generate-icons.js    ← Helper script to create placeholder icons
 └── icons/
     ├── icon16.png
@@ -37,13 +38,25 @@ extension/
 
 ## Configuration
 
-Open `config.js` and set `API_BASE_URL` to point at your server:
+Open `config.js` and configure your settings:
 
 ```js
 const CONFIG = {
   API_BASE_URL: 'http://localhost:4000',   // ← change this if needed
+  LOG_LEVEL: 'info',                       // ← 'debug' | 'info' | 'warn' | 'error'
 };
 ```
+
+### Logging Levels
+
+The extension includes a comprehensive logging system with colored console output:
+
+- **`debug`** - Detailed logs including all API calls and state changes (use during development)
+- **`info`** - Important operations like login, logout, task creation (default, recommended)
+- **`warn`** - Warnings and non-critical errors
+- **`error`** - Critical errors only
+
+To enable detailed debugging, set `LOG_LEVEL: 'debug'` in `config.js`.
 
 > If you run the API on a different host or port, update the value **and** the
 > `host_permissions` array inside `manifest.json` to match, otherwise Chrome

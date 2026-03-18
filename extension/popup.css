@@ -191,6 +191,32 @@ textarea { resize: vertical; }
   margin-top: 6px;
 }
 
+/* ── Checkbox field ────────────────────────────────────────────── */
+.checkbox-field {
+  margin-bottom: 16px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: .85rem;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.checkbox-label:hover {
+  color: var(--text);
+}
+
 /* ── Buttons ───────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;
@@ -232,8 +258,14 @@ textarea { resize: vertical; }
 .btn-ghost:hover:not(:disabled) { color: var(--text); border-color: var(--border); }
 
 .btn-sm { padding: 6px 12px; font-size: .8rem; }
+.btn-xs { 
+  padding: 6px 12px; 
+  font-size: .82rem; 
+  width: auto; /* Override full width */
+}
 
 .icon-sm { width: 13px; height: 13px; }
+.icon-xs { width: 14px; height: 14px; }
 
 /* ── Spinner ───────────────────────────────────────────────────── */
 .spinner {
@@ -245,6 +277,9 @@ textarea { resize: vertical; }
   animation: spin .6s linear infinite;
   flex-shrink: 0;
 }
+.spinner[hidden] {
+  display: none;
+}
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── User bar ──────────────────────────────────────────────────── */
@@ -252,13 +287,18 @@ textarea { resize: vertical; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   margin-bottom: 12px;
 }
 .user-greeting {
-  font-size: .82rem;
+  font-size: .95rem;
   color: var(--text-muted);
+  flex: 1;
 }
-.user-greeting strong { color: var(--text-sub); }
+.user-greeting strong { 
+  color: var(--text); 
+  font-weight: 600;
+}
 
 /* ── Toolbar (search + filter) ─────────────────────────────────── */
 .toolbar {
@@ -292,6 +332,9 @@ textarea { resize: vertical; }
   color: var(--text-muted);
   font-size: .82rem;
 }
+.loading-row[hidden] {
+  display: none;
+}
 .loading-row .spinner {
   border-top-color: var(--accent);
   border-color: rgba(99,102,241,.25);
@@ -303,6 +346,9 @@ textarea { resize: vertical; }
   color: var(--text-muted);
   font-size: .82rem;
   padding: 24px 0;
+}
+.empty-msg[hidden] {
+  display: none;
 }
 
 .task-list {
@@ -459,10 +505,14 @@ textarea { resize: vertical; }
   display: flex;
   justify-content: space-around;
   padding: 12px 8px;
-  margin: 0 16px 8px;
+  margin-bottom: 10px;
   background: var(--bg-card);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
+  width: 100%; /* Match toolbar width */
+}
+.mini-stats[hidden] {
+  display: none;
 }
 
 .stat-item {
@@ -488,33 +538,120 @@ textarea { resize: vertical; }
   letter-spacing: .04em;
 }
 
-/* ── Add task panel ────────────────────────────────────────────── */
-.add-task-panel {
-  border-top: 1px solid var(--border);
-  padding-top: 12px;
-  margin-top: 10px;
-}
-
-.add-toggle {
-  width: 100%;
+/* ── Modal ────────────────────────────────────────────────────── */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
   justify-content: center;
 }
-
-.add-task-form {
-  margin-top: 10px;
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transition: max-height .28s ease, opacity .2s ease;
-}
-.add-task-form.expanded {
-  max-height: 240px;
-  opacity: 1;
+.modal[hidden] {
+  display: none;
 }
 
-.add-task-actions {
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  position: relative;
+  z-index: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  width: 90%;
+  max-width: 500px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4),
+              0 10px 10px -5px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modal-content form {
+  padding: 20px;
+}
+
+.modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 10px;
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── Task item actions ─────────────────────────────────────────── */
+.task-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.task-actions {
+  display: flex;
+  gap: 4px;
   margin-top: 8px;
+}
+
+.btn-icon-sm {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: .75rem;
+  cursor: pointer;
+  transition: all .2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-icon-sm svg {
+  width: 14px;
+  height: 14px;
+}
+
+.btn-icon-sm:hover {
+  background: var(--bg-btn-hover);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-icon-sm.btn-danger:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
 }

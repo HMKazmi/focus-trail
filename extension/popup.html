@@ -48,6 +48,12 @@
             <input id="login-password" type="password" autocomplete="current-password"
                    placeholder="••••••••" required />
           </div>
+          <div class="field checkbox-field">
+            <label class="checkbox-label">
+              <input id="remember-me" type="checkbox" />
+              <span>Remember me</span>
+            </label>
+          </div>
           <p id="login-error" class="field-error" hidden></p>
           <button type="submit" class="btn btn-primary" id="btn-login">
             <span class="btn-label">Sign in</span>
@@ -60,9 +66,16 @@
     <!-- ══════════════ VIEW: LOGGED IN ═══════════════════════ -->
     <section id="view-tasks" class="view" hidden>
 
-      <!-- user greeting -->
+      <!-- user greeting + add button -->
       <div class="user-bar">
         <span id="user-greeting" class="user-greeting"></span>
+        <button id="btn-toggle-add" class="btn btn-primary btn-xs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round" class="icon-xs">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          New Task
+        </button>
       </div>
 
       <!-- mini dashboard stats -->
@@ -91,44 +104,81 @@
           <span class="spinner"></span>
           <span>Loading tasks…</span>
         </div>
-        <p id="task-empty" class="empty-msg" hidden>No tasks yet — add one below!</p>
+        <p id="task-empty" class="empty-msg" hidden>No tasks yet — click "New task" to add one!</p>
         <ul id="task-list" class="task-list"></ul>
       </div>
 
-      <!-- add task form -->
-      <div class="add-task-panel">
-        <button id="btn-toggle-add" class="btn btn-secondary btn-sm add-toggle">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-               stroke-linecap="round" stroke-linejoin="round" class="icon-sm">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          New task
-        </button>
+    </section>
 
-        <form id="add-task-form" class="add-task-form collapsed" novalidate>
+    <!-- Add Task Modal/Dialog -->
+    <div id="add-task-modal" class="modal" hidden>
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>New Task</h3>
+          <button id="btn-close-modal" class="btn-icon" title="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        
+        <form id="add-task-form" novalidate>
           <div class="field">
-            <input id="task-title" type="text" placeholder="Task title *" maxlength="200" required />
+            <label for="task-title">Title *</label>
+            <input id="task-title" type="text" placeholder="What needs to be done?" 
+                   maxlength="200" required />
           </div>
+          
           <div class="field">
-            <textarea id="task-desc" placeholder="Description (optional)"
-                      maxlength="2000" rows="2"></textarea>
+            <label for="task-desc">Description</label>
+            <textarea id="task-desc" placeholder="Add more details (optional)"
+                      maxlength="2000" rows="3"></textarea>
           </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="task-priority">Priority</label>
+              <select id="task-priority" class="select-sm">
+                <option value="low">🟢 Low</option>
+                <option value="medium" selected>🟡 Medium</option>
+                <option value="high">🔴 High</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="task-status">Status</label>
+              <select id="task-status" class="select-sm">
+                <option value="todo" selected>To do</option>
+                <option value="in_progress">In progress</option>
+                <option value="done">Done</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="task-due-date">Due Date</label>
+            <input id="task-due-date" type="datetime-local" />
+          </div>
+
           <p id="add-task-error" class="field-error" hidden></p>
-          <div class="add-task-actions">
-            <button type="button" id="btn-cancel-add" class="btn btn-ghost btn-sm">Cancel</button>
-            <button type="submit" class="btn btn-primary btn-sm" id="btn-add-task">
-              <span class="btn-label">Add task</span>
+          
+          <div class="modal-footer">
+            <button type="button" id="btn-cancel-add" class="btn btn-ghost">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btn-add-task">
+              <span class="btn-label">Create Task</span>
               <span class="spinner" hidden></span>
             </button>
           </div>
         </form>
       </div>
-
-    </section>
+    </div>
 
   </div><!-- /#app -->
 
   <script src="config.js"></script>
+  <script src="logger.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

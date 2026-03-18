@@ -207,6 +207,76 @@ To test the Flutter app logging, you need to fix the Flutter version issue first
 
 ---
 
+## ✅ Chrome Extension Logging
+
+### Files Created/Modified:
+
+1. **`extension/logger.js`** - Main logging utility
+   - Colored console output with ANSI codes
+   - Log levels: DEBUG, INFO, SUCCESS, WARN, ERROR, API
+   - Configurable via `config.js`
+   - Module-based logging
+   - Startup banner with ASCII art
+   - Grouped logging support
+
+2. **`extension/popup.js`** - Main extension logic
+   - Logs initialization sequence
+   - Logs authentication operations (login, logout)
+   - Logs task operations (load, create, update, trash)
+   - Logs API calls with success/failure
+   - Logs dashboard stats loading
+
+3. **`extension/config.js`** - Configuration
+   - Added `LOG_LEVEL` configuration option
+   - Supports: 'debug', 'info', 'warn', 'error'
+   - Default: 'info' (important operations only)
+
+4. **`extension/popup.html`** - HTML structure
+   - Added `logger.js` script before `popup.js`
+   - Ensures logger is available globally
+
+5. **`extension/README.md`** - Documentation
+   - Added logging configuration section
+   - Documented log levels and their use cases
+   - Added troubleshooting guide
+
+### Log Configuration:
+
+**Development Mode** (detailed logs):
+```javascript
+// config.js
+const CONFIG = {
+  API_BASE_URL: 'http://localhost:4000',
+  LOG_LEVEL: 'debug',  // Shows all operations
+};
+```
+
+**Production Mode** (important logs only):
+```javascript
+// config.js
+const CONFIG = {
+  API_BASE_URL: 'http://localhost:4000',
+  LOG_LEVEL: 'info',  // Default - shows info, success, warn, error
+};
+```
+
+### Extension Log Examples:
+
+```
+2026-03-18T10:30:15.123Z 🔍 DEBUG [API] GET /api/tasks
+2026-03-18T10:30:15.234Z ✅ SUCCESS [API] GET /api/tasks 200
+2026-03-18T10:30:15.345Z ✅ SUCCESS [Tasks] Loaded 5 tasks
+
+2026-03-18T10:31:20.456Z ℹ️ INFO [Auth] Login attempt for: user@example.com
+2026-03-18T10:31:20.567Z ✅ SUCCESS [Auth] Login successful: user@example.com
+
+2026-03-18T10:32:30.678Z ℹ️ INFO [Tasks] Creating task: Fix login bug
+  ↳ Data: { priority: 'high' }
+2026-03-18T10:32:30.789Z ✅ SUCCESS [Tasks] Task created: Fix login bug
+```
+
+---
+
 ## 🎨 Log Level Usage Guide
 
 - **INFO**: General information (startup, configuration)
@@ -233,3 +303,5 @@ To test the Flutter app logging, you need to fix the Flutter version issue first
 4. **User Flow Tracking**: See navigation and auth flows
 5. **Database Monitoring**: Track all database operations
 6. **Development Speed**: Faster issue identification and resolution
+7. **Consistent Logging**: All three platforms use similar logging patterns
+8. **Configurable Verbosity**: Adjust log levels per platform as needed
