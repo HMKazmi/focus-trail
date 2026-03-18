@@ -373,11 +373,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Hussain Kazmi** - [HMKazmi](https://github.com/HMKazmi)
 
-## 🙏 Acknowledgments
+<!-- ## 🙏 Acknowledgments
 
 - Flutter team for the amazing framework
 - Express.js community
-- All open-source contributors whose packages made this possible
+- All open-source contributors whose packages made this possible -->
 
 ## 📞 Support
 
