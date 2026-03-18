@@ -34,4 +34,4 @@ class SyncOperation {
   }
 }
 
-enum SyncOpType { create, update, delete }
+enum SyncOpType { create, update, delete, trash }

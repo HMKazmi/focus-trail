@@ -14,12 +14,16 @@ class TaskShellPage extends ConsumerWidget {
 
   static const _destinations = [
     NavigationDestination(icon: Icon(Icons.check_circle_outline), label: 'Tasks'),
+    NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Dashboard'),
+    NavigationDestination(icon: Icon(Icons.delete_outline), label: 'Trash'),
     NavigationDestination(icon: Icon(Icons.settings_outlined), label: 'Settings'),
   ];
 
   int _indexFromRoute(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    if (location.startsWith('/settings')) return 1;
+    if (location.startsWith('/dashboard')) return 1;
+    if (location.startsWith('/trash')) return 2;
+    if (location.startsWith('/settings')) return 3;
     return 0;
   }
 
@@ -29,6 +33,12 @@ class TaskShellPage extends ConsumerWidget {
         context.go('/tasks');
         break;
       case 1:
+        context.go('/dashboard');
+        break;
+      case 2:
+        context.go('/trash');
+        break;
+      case 3:
         context.go('/settings');
         break;
     }
@@ -97,6 +107,14 @@ class TaskShellPage extends ConsumerWidget {
                           NavigationRailDestination(
                             icon: Icon(Icons.check_circle_outline),
                             label: Text('Tasks'),
+                          ),
+                          NavigationRailDestination(
+                            icon: Icon(Icons.dashboard_outlined),
+                            label: Text('Dashboard'),
+                          ),
+                          NavigationRailDestination(
+                            icon: Icon(Icons.delete_outline),
+                            label: Text('Trash'),
                           ),
                           NavigationRailDestination(
                             icon: Icon(Icons.settings_outlined),

@@ -70,13 +70,24 @@ class SyncServiceNotifier extends StateNotifier<SyncState> {
           pendingCount: SyncQueueDataSource().length,
           lastSyncTime: _loadLastSync(),
         )) {
-    // Periodic background sync every 30s.
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) => sync());
+    // Periodic background sync every 30s (only if authenticated).
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_isAuthenticated()) {
+        sync();
+      }
+    });
   }
 
   static DateTime? _loadLastSync() {
     final raw = Hive.box(HiveBoxes.settings).get('lastSyncTime') as String?;
     return raw != null ? DateTime.tryParse(raw) : null;
+  }
+
+  /// Check if user is authenticated before making API calls.
+  bool _isAuthenticated() {
+    final authBox = Hive.box(HiveBoxes.auth);
+    final token = authBox.get('token') as String?;
+    return token != null && token.isNotEmpty;
   }
 
   /// Enqueue a pending operation.
@@ -87,6 +98,12 @@ class SyncServiceNotifier extends StateNotifier<SyncState> {
 
   /// Process the queue + pull fresh data from server.
   Future<void> sync() async {
+    // Skip sync if not authenticated
+    if (!_isAuthenticated()) {
+      debugPrint('Sync skipped: user not authenticated');
+      return;
+    }
+    
     if (state.isSyncing) return;
     state = state.copyWith(isSyncing: true, clearError: true);
 
@@ -105,11 +122,15 @@ class SyncServiceNotifier extends StateNotifier<SyncState> {
             case SyncOpType.delete:
               await remote.deleteTask(op.entityId);
               break;
+            case SyncOpType.trash:
+              await remote.trashTask(op.entityId);
+              break;
           }
           await queue.remove(op.id);
         } on DioException catch (e) {
-          // 404 on delete means already gone, safe to remove
-          if (op.type == SyncOpType.delete && e.response?.statusCode == 404) {
+          // 404 on delete/trash means already gone, safe to remove
+          if ((op.type == SyncOpType.delete || op.type == SyncOpType.trash) && 
+              e.response?.statusCode == 404) {
             await queue.remove(op.id);
             continue;
           }
@@ -123,6 +144,7 @@ class SyncServiceNotifier extends StateNotifier<SyncState> {
       }
 
       // 2. Pull fresh data (last-write-wins: server data replaces local).
+      // Server data has isSynced: true by default
       try {
         final remoteTasks = await remote.fetchTasks();
         await local.replaceAll(remoteTasks);

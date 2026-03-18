@@ -297,8 +297,10 @@ function buildTaskItem(task) {
   const nextLbl  = STATUS_NEXT_LABEL[status] || '▶ Start';
 
   const li = document.createElement('li');
-  li.className = `task-item${isDone ? ' done' : ''}`;
+  li.className = `task-item${isDone ? ' done' : ''}${task.priority === 'high' ? ' high-priority' : ''}`;
   li.dataset.id = task._id || task.id;
+
+  const priorityIcon = task.priority === 'high' ? '🔴' : task.priority === 'low' ? '🟢' : '🟡';
 
   li.innerHTML = `
     <input type="checkbox" class="task-checkbox" title="Toggle done"
@@ -307,11 +309,14 @@ function buildTaskItem(task) {
       <div class="task-title">${esc(task.title)}</div>
       ${task.description ? `<div class="task-desc">${esc(task.description)}</div>` : ''}
       <div class="task-meta">
+        <span class="priority-icon" title="${task.priority || 'medium'} priority">${priorityIcon}</span>
         <span class="tag ${tagClass}">${esc(STATUS_LABELS[status] || status)}</span>
+        ${task.dueDate ? `<span class="due-date">📅 ${formatDueDate(task.dueDate)}</span>` : ''}
         ${!isDone
           ? `<button class="btn-status" data-action="next-status" title="Advance status">${esc(nextLbl)}</button>`
           : ''
         }
+        <button class="btn-trash" data-action="trash" title="Move to trash">🗑️</button>
       </div>
     </div>`;
 
@@ -322,18 +327,38 @@ function buildTaskItem(task) {
   const nextBtn = li.querySelector('[data-action="next-status"]');
   if (nextBtn) nextBtn.addEventListener('click', () => advanceTaskStatus(task));
 
+  const trashBtn = li.querySelector('[data-action="trash"]');
+  if (trashBtn) trashBtn.addEventListener('click', () => trashTask(task));
+
   return li;
+}
+
+function formatDueDate(dateStr) {
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = date - now;
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return `Overdue`;
+    if (diffDays === 0) return `Today`;
+    if (diffDays === 1) return `Tomorrow`;
+    if (diffDays <= 7) return `${diffDays} days`;
+    return date.toLocaleDateString();
+  } catch (_) {
+    return dateStr;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════
    TASKS – CREATE
    ══════════════════════════════════════════════════════════════════ */
-async function addTask(title, description) {
+async function addTask(title, description, priority = 'medium') {
   setAddTaskBusy(true);
   DOM.addTaskError.hidden = true;
   hideStatus();
   try {
-    const body = { title, status: 'todo' };
+    const body = { title, status: 'todo', priority };
     if (description) body.description = description;
     await apiFetch('/api/tasks', {
       method: 'POST',
@@ -343,10 +368,28 @@ async function addTask(title, description) {
     collapseAddForm();
     DOM.addTaskForm.reset();
     await loadTasks();
+    await loadMiniStats(); // Refresh stats
   } catch (err) {
     setAddTaskBusy(false);
     DOM.addTaskError.textContent = err.message || 'Failed to add task.';
     DOM.addTaskError.hidden = false;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TASKS – TRASH
+   ══════════════════════════════════════════════════════════════════ */
+async function trashTask(task) {
+  const taskId = task._id || task.id;
+  try {
+    await apiFetch(`/api/tasks/${taskId}/trash`, {
+      method: 'PATCH',
+    }, _token);
+    showStatus('Task moved to trash', 'success', 2000);
+    await loadTasks();
+    await loadMiniStats();
+  } catch (err) {
+    showStatus(`Failed to trash: ${err.message}`, 'error', 4000);
   }
 }
 
@@ -369,6 +412,7 @@ async function updateTaskStatus(task, newStatus) {
       li.replaceWith(replacement);
     }
     showStatus(`Task marked as "${STATUS_LABELS[newStatus] || newStatus}"`, 'success', 2000);
+    await loadMiniStats(); // Refresh stats
   } catch (err) {
     showStatus(`Update failed: ${err.message}`, 'error', 4000);
     // Revert checkbox visually by re-rendering
@@ -384,6 +428,50 @@ async function toggleTaskDone(task) {
 async function advanceTaskStatus(task) {
   const newStatus = STATUS_NEXT[task.status] || 'done';
   await updateTaskStatus(task, newStatus);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   MINI DASHBOARD STATS
+   ══════════════════════════════════════════════════════════════════ */
+async function loadMiniStats() {
+  try {
+    const data = await apiFetch('/api/tasks/stats', {}, _token);
+    const stats = data?.stats || data;
+    renderMiniStats(stats);
+  } catch (_) {
+    // Silently fail - stats are optional
+  }
+}
+
+function renderMiniStats(stats) {
+  const container = document.getElementById('mini-stats');
+  if (!container) return;
+
+  const total = stats.total || 0;
+  const done = stats.byStatus?.done || 0;
+  const overdue = stats.overdue || 0;
+  const streak = stats.streak || 0;
+  const completion = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  container.innerHTML = `
+    <div class="stat-item">
+      <span class="stat-value">${done}/${total}</span>
+      <span class="stat-label">Done</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value ${overdue > 0 ? 'overdue' : ''}">${overdue}</span>
+      <span class="stat-label">Overdue</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value streak">${streak}🔥</span>
+      <span class="stat-label">Streak</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">${completion}%</span>
+      <span class="stat-label">Complete</span>
+    </div>
+  `;
+  container.hidden = false;
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -453,6 +541,21 @@ function bindEvents() {
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   RENDER LOGGED IN - Updated to include stats
+   ══════════════════════════════════════════════════════════════════ */
+function renderLoggedInWithStats() {
+  DOM.viewLogin.hidden = true;
+  DOM.viewTasks.hidden = false;
+  DOM.btnLogout.hidden = false;
+
+  const name = _user?.name || _user?.email?.split('@')[0] || 'there';
+  DOM.userGreeting.innerHTML = `Hey, <strong>${esc(name)}</strong> 👋`;
+
+  loadTasks();
+  loadMiniStats();
+}
+
+/* ══════════════════════════════════════════════════════════════════
    INIT
    ══════════════════════════════════════════════════════════════════ */
 async function init() {
@@ -462,7 +565,7 @@ async function init() {
   if (token) {
     _token = token;
     _user  = user;
-    renderLoggedIn();
+    renderLoggedInWithStats();
   } else {
     renderLoggedOut();
   }

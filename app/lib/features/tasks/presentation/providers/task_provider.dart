@@ -59,7 +59,7 @@ class TaskListState {
 
   /// Filtered & searched view of tasks.
   List<TaskEntity> get filteredTasks {
-    var list = tasks;
+    var list = tasks.toList(); // Create a mutable copy
     if (statusFilter != null) {
       list = list.where((t) => t.status == statusFilter).toList();
     }
@@ -92,7 +92,9 @@ class TaskListNotifier extends StateNotifier<TaskListState> {
     required String title,
     String? description,
     TaskStatus status = TaskStatus.todo,
+    TaskPriority priority = TaskPriority.medium,
     DateTime? dueDate,
+    DateTime? reminderAt,
   }) async {
     final now = DateTime.now();
     final id = const Uuid().v4();
@@ -101,9 +103,12 @@ class TaskListNotifier extends StateNotifier<TaskListState> {
       title: title,
       description: description,
       status: status,
+      priority: priority,
       dueDate: dueDate,
+      reminderAt: reminderAt,
       createdAt: now,
       updatedAt: now,
+      isSynced: false, // Mark as not synced initially
     );
     await _repo.createTask(task);
     // Enqueue sync op
@@ -118,7 +123,7 @@ class TaskListNotifier extends StateNotifier<TaskListState> {
   }
 
   Future<void> updateTask(TaskEntity task) async {
-    final updated = task.copyWith(updatedAt: DateTime.now());
+    final updated = task.copyWith(updatedAt: DateTime.now(), isSynced: false);
     await _repo.updateTask(updated);
     await _syncService.enqueue(SyncOperation(
       id: const Uuid().v4(),
@@ -130,7 +135,20 @@ class TaskListNotifier extends StateNotifier<TaskListState> {
     await load();
   }
 
+  Future<void> trashTask(String id) async {
+    // Soft delete - moves to trash on server
+    await _repo.deleteTask(id); // Remove from local view
+    await _syncService.enqueue(SyncOperation(
+      id: const Uuid().v4(),
+      type: SyncOpType.trash, // Use trash operation, not delete
+      entityId: id,
+      createdAt: DateTime.now(),
+    ));
+    await load();
+  }
+
   Future<void> deleteTask(String id) async {
+    // Permanent delete
     await _repo.deleteTask(id);
     await _syncService.enqueue(SyncOperation(
       id: const Uuid().v4(),

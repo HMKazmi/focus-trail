@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 
@@ -120,7 +121,7 @@ class AppLogger {
   static void response(String method, String url, int statusCode, {dynamic data, int? duration}) {
     final statusColor = statusCode >= 200 && statusCode < 300 ? _green :
                        statusCode >= 400 && statusCode < 500 ? _yellow : _red;
-    final durationStr = duration != null ? ' ${_dim}(${duration}ms)$_reset' : '';
+    final durationStr = duration != null ? ' $_dim(${duration}ms)$_reset' : '';
     
     _log('RESPONSE', '$_bright$method$_reset $url $statusColor$statusCode$_reset$durationStr', _green,
       module: 'Network',
@@ -251,8 +252,8 @@ class AppLogger {
       print('$_bright$_green/ / | (_) | (__| |_| |/ / | |_| | |  | | |$_reset');
       print('$_bright$_green\\/   \\___/ \\___|\\__,_|\\/   \\__,_|_|  |_|_|$_reset');
       print('');
-      print('$_bright${_cyan}🚀 FocusTrail Mobile App$_reset');
-      print('${_dim}   Offline-First Productivity Tracker$_reset');
+      print('$_bright$_cyan🚀 FocusTrail Mobile App$_reset');
+      print('$_dim   Offline-First Productivity Tracker$_reset');
       print('');
       separator();
       print('\n');

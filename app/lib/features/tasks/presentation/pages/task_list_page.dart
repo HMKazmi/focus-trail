@@ -18,6 +18,7 @@ class TaskListPage extends ConsumerStatefulWidget {
 
 class _TaskListPageState extends ConsumerState<TaskListPage> {
   final _searchCtrl = TextEditingController();
+  bool _wasSyncing = false;
 
   @override
   void dispose() {
@@ -30,6 +31,15 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     final state = ref.watch(taskListProvider);
     final syncState = ref.watch(syncServiceProvider);
     final tasks = state.filteredTasks;
+    
+    // Reload tasks when sync completes (syncing -> not syncing)
+    if (_wasSyncing && !syncState.isSyncing) {
+      // Schedule reload after build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(taskListProvider.notifier).load();
+      });
+    }
+    _wasSyncing = syncState.isSyncing;
 
     return Scaffold(
       appBar: AppBar(

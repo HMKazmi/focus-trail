@@ -19,7 +19,9 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   TaskStatus _status = TaskStatus.todo;
+  TaskPriority _priority = TaskPriority.medium;
   DateTime? _dueDate;
+  DateTime? _reminderAt;
   bool _initialized = false;
 
   bool get isEditing => widget.taskId != null;
@@ -36,18 +38,66 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
     _titleCtrl.text = task.title;
     _descCtrl.text = task.description ?? '';
     _status = task.status;
+    _priority = task.priority;
     _dueDate = task.dueDate;
+    _reminderAt = task.reminderAt;
     _initialized = true;
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
+    final pickedDate = await showDatePicker(
       context: context,
       initialDate: _dueDate ?? DateTime.now(),
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
     );
-    if (picked != null) setState(() => _dueDate = picked);
+    if (pickedDate == null || !mounted) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: _dueDate != null
+          ? TimeOfDay.fromDateTime(_dueDate!)
+          : const TimeOfDay(hour: 23, minute: 59), // Default to end of day
+    );
+    if (pickedTime == null || !mounted) return;
+
+    setState(() {
+      _dueDate = DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+    });
+  }
+
+  Future<void> _pickReminder() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _reminderAt ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+    );
+    if (pickedDate == null || !mounted) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: _reminderAt != null
+          ? TimeOfDay.fromDateTime(_reminderAt!)
+          : TimeOfDay.now(),
+    );
+    if (pickedTime == null || !mounted) return;
+
+    setState(() {
+      _reminderAt = DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+    });
   }
 
   Future<void> _submit() async {
@@ -64,8 +114,11 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
           title: _titleCtrl.text.trim(),
           description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
           status: _status,
+          priority: _priority,
           dueDate: _dueDate,
+          reminderAt: _reminderAt,
           clearDueDate: _dueDate == null && existing.dueDate != null,
+          clearReminder: _reminderAt == null && existing.reminderAt != null,
         ),
       );
     } else {
@@ -73,7 +126,9 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
         title: _titleCtrl.text.trim(),
         description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
         status: _status,
+        priority: _priority,
         dueDate: _dueDate,
+        reminderAt: _reminderAt,
       );
     }
 
@@ -131,44 +186,111 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Status
-                  DropdownButtonFormField<TaskStatus>(
-                    value: _status,
-                    decoration: const InputDecoration(
-                      labelText: 'Status',
-                      prefixIcon: Icon(Icons.flag_outlined),
-                    ),
-                    items: TaskStatus.values
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s.label)))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) setState(() => _status = v);
-                    },
+                  // Status and Priority row
+                  Row(
+                    children: [
+                      // Status
+                      Expanded(
+                        child: DropdownButtonFormField<TaskStatus>(
+                          initialValue: _status,
+                          decoration: const InputDecoration(
+                            labelText: 'Status',
+                            prefixIcon: Icon(Icons.flag_outlined),
+                          ),
+                          items: TaskStatus.values
+                              .map((s) => DropdownMenuItem(value: s, child: Text(s.label)))
+                              .toList(),
+                          onChanged: (v) {
+                            if (v != null) setState(() => _status = v);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Priority
+                      Expanded(
+                        child: DropdownButtonFormField<TaskPriority>(
+                          initialValue: _priority,
+                          decoration: const InputDecoration(
+                            labelText: 'Priority',
+                            prefixIcon: Icon(Icons.priority_high),
+                          ),
+                          items: TaskPriority.values
+                              .map((p) => DropdownMenuItem(
+                                    value: p,
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.circle,
+                                          size: 12,
+                                          color: _getPriorityColor(p),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(p.label),
+                                      ],
+                                    ),
+                                  ))
+                              .toList(),
+                          onChanged: (v) {
+                            if (v != null) setState(() => _priority = v);
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
 
                   // Due date
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.calendar_today_outlined),
-                    title: Text(
-                      _dueDate != null
-                          ? 'Due: ${DateFormat.yMMMd().format(_dueDate!)}'
-                          : 'No due date',
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (_dueDate != null)
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.calendar_today_outlined),
+                      title: Text(
+                        _dueDate != null
+                            ? 'Due: ${DateFormat.yMMMd().add_jm().format(_dueDate!)}'
+                            : 'No due date',
+                      ),
+                      subtitle: _dueDate != null ? null : const Text('Tap to set due date and time'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_dueDate != null)
+                            IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () => setState(() => _dueDate = null),
+                            ),
                           IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () => setState(() => _dueDate = null),
+                            icon: const Icon(Icons.edit_calendar),
+                            onPressed: _pickDate,
                           ),
-                        IconButton(
-                          icon: const Icon(Icons.edit_calendar),
-                          onPressed: _pickDate,
-                        ),
-                      ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Reminder
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.notifications_outlined),
+                      title: Text(
+                        _reminderAt != null
+                            ? 'Reminder: ${DateFormat.yMMMd().add_jm().format(_reminderAt!)}'
+                            : 'No reminder',
+                      ),
+                      subtitle: _reminderAt != null ? null : const Text('Tap to set reminder'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_reminderAt != null)
+                            IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () => setState(() => _reminderAt = null),
+                            ),
+                          IconButton(
+                            icon: const Icon(Icons.alarm_add),
+                            onPressed: _pickReminder,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
@@ -186,5 +308,16 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
         ),
       ),
     );
+  }
+
+  Color _getPriorityColor(TaskPriority priority) {
+    switch (priority) {
+      case TaskPriority.low:
+        return Colors.green;
+      case TaskPriority.medium:
+        return Colors.orange;
+      case TaskPriority.high:
+        return Colors.red;
+    }
   }
 }

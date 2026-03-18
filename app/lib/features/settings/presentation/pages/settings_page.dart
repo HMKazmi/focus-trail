@@ -4,10 +4,17 @@ import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../../core/config/app_config.dart';
+import '../../../../core/network/dio_client.dart';
 import '../../../../core/storage/hive_boxes.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../tasks/data/datasource/task_remote_datasource.dart';
 import '../../../tasks/data/sync_service.dart';
+
+// Provider for task remote data source (for export)
+final taskRemoteDataSourceProvider = Provider<TaskRemoteDataSource>((ref) {
+  return TaskRemoteDataSource(ref.watch(dioProvider));
+});
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -133,6 +140,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     ),
             ),
           ),
+          const SizedBox(height: 16),
+
+          // ── Export Data ─────────────────────────────────
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.download),
+              title: const Text('Export Tasks'),
+              subtitle: const Text('Download your tasks as CSV or JSON'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showExportDialog(context),
+            ),
+          ),
           const SizedBox(height: 32),
 
           // ── Logout ───────────────────────────────────────
@@ -149,6 +168,204 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showExportDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const _ExportDialogContent(),
+    );
+  }
+}
+
+class _ExportDialogContent extends ConsumerStatefulWidget {
+  const _ExportDialogContent();
+
+  @override
+  ConsumerState<_ExportDialogContent> createState() => _ExportDialogContentState();
+}
+
+class _ExportDialogContentState extends ConsumerState<_ExportDialogContent> {
+  bool _isExporting = false;
+  String _exportType = '';
+
+  Future<void> _exportCsv() async {
+    setState(() {
+      _isExporting = true;
+      _exportType = 'csv';
+    });
+
+    try {
+      final remote = ref.read(taskRemoteDataSourceProvider);
+      final csvData = await remote.exportTasksAsCsv();
+      
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tasks exported as CSV')),
+        );
+        // For simplicity, show the data in a dialog (in production, use share_plus)
+        _showExportResult(context, 'CSV Export', csvData);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
+  Future<void> _exportJson() async {
+    setState(() {
+      _isExporting = true;
+      _exportType = 'json';
+    });
+
+    try {
+      final remote = ref.read(taskRemoteDataSourceProvider);
+      final jsonData = await remote.exportTasksAsJson();
+      
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tasks exported as JSON')),
+        );
+        _showExportResult(context, 'JSON Export', jsonData.toString());
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
+  void _showExportResult(BuildContext context, String title, String content) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: SingleChildScrollView(
+          child: SelectableText(
+            content,
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Export Tasks'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('Choose your preferred export format:'),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: _ExportOptionCard(
+                  icon: Icons.table_chart,
+                  label: 'CSV',
+                  description: 'Spreadsheet',
+                  isLoading: _isExporting && _exportType == 'csv',
+                  onTap: _isExporting ? null : _exportCsv,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _ExportOptionCard(
+                  icon: Icons.code,
+                  label: 'JSON',
+                  description: 'Data format',
+                  isLoading: _isExporting && _exportType == 'json',
+                  onTap: _isExporting ? null : _exportJson,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isExporting ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ExportOptionCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String description;
+  final bool isLoading;
+  final VoidCallback? onTap;
+
+  const _ExportOptionCard({
+    required this.icon,
+    required this.label,
+    required this.description,
+    required this.isLoading,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: cs.outline.withAlpha(50)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            if (isLoading)
+              const SizedBox(
+                width: 32,
+                height: 32,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              Icon(icon, size: 32, color: cs.primary),
+            const SizedBox(height: 8),
+            Text(label, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              description,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: cs.onSurfaceVariant,
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }

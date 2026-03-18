@@ -9,6 +9,8 @@ import 'features/tasks/presentation/pages/task_shell_page.dart';
 import 'features/tasks/presentation/pages/task_list_page.dart';
 import 'features/tasks/presentation/pages/task_form_page.dart';
 import 'features/settings/presentation/pages/settings_page.dart';
+import 'features/dashboard/presentation/pages/dashboard_page.dart';
+import 'features/trash/presentation/pages/trash_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -73,6 +75,20 @@ final routerProvider = Provider<GoRouter>((ref) {
               final id = state.pathParameters['id']!;
               AppLogger.navigation('Building page', '/tasks/edit/$id');
               return TaskFormPage(taskId: id);
+            },
+          ),
+          GoRoute(
+            path: '/dashboard',
+            builder: (context, state) {
+              AppLogger.navigation('Building page', '/dashboard');
+              return const DashboardPage();
+            },
+          ),
+          GoRoute(
+            path: '/trash',
+            builder: (context, state) {
+              AppLogger.navigation('Building page', '/trash');
+              return const TrashPage();
             },
           ),
           GoRoute(

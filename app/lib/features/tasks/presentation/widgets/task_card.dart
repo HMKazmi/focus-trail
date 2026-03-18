@@ -35,11 +35,40 @@ class TaskCard extends StatelessWidget {
     };
   }
 
+  Color _priorityColor(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return switch (task.priority) {
+      TaskPriority.low => Colors.green,
+      TaskPriority.medium => Colors.orange,
+      TaskPriority.high => cs.error,
+    };
+  }
+
+  String _formatDueDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dueDay = DateTime(date.year, date.month, date.day);
+    final diff = dueDay.difference(today).inDays;
+
+    if (diff == 0) {
+      return 'Today ${DateFormat.jm().format(date)}';
+    } else if (diff == 1) {
+      return 'Tomorrow ${DateFormat.jm().format(date)}';
+    } else if (diff == -1) {
+      return 'Yesterday ${DateFormat.jm().format(date)}';
+    } else if (diff > 1 && diff <= 7) {
+      return '${DateFormat.E().format(date)} ${DateFormat.jm().format(date)}';
+    } else {
+      return '${DateFormat.MMMd().format(date)} ${DateFormat.jm().format(date)}';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final statusColor = _statusColor(context);
+    final priorityColor = _priorityColor(context);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -65,11 +94,33 @@ class TaskCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 child: Row(
                   children: [
-                    // Status toggle
-                    IconButton(
-                      icon: Icon(_statusIcon(), color: statusColor, size: 28),
-                      onPressed: onToggleStatus,
-                      tooltip: 'Change status',
+                    // Status toggle with sync indicator
+                    Stack(
+                      children: [
+                        IconButton(
+                          icon: Icon(_statusIcon(), color: statusColor, size: 28),
+                          onPressed: onToggleStatus,
+                          tooltip: 'Change status',
+                        ),
+                        // Sync indicator
+                        if (!task.isSynced)
+                          Positioned(
+                            right: 6,
+                            top: 6,
+                            child: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: Colors.orange,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isDark ? cs.surface : Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(width: 8),
                     // Content
@@ -77,17 +128,33 @@ class TaskCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            task.title,
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  decoration: task.status == TaskStatus.done
-                                      ? TextDecoration.lineThrough
-                                      : null,
+                          Row(
+                            children: [
+                              // Priority indicator
+                              Container(
+                                width: 4,
+                                height: 16,
+                                margin: const EdgeInsets.only(right: 8),
+                                decoration: BoxDecoration(
+                                  color: priorityColor,
+                                  borderRadius: BorderRadius.circular(2),
                                 ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                              ),
+                              Expanded(
+                                child: Text(
+                                  task.title,
+                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                        decoration: task.status == TaskStatus.done
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                      ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           Row(
                             children: [
                               Container(
@@ -103,14 +170,53 @@ class TaskCard extends StatelessWidget {
                               ),
                               if (task.dueDate != null) ...[
                                 const SizedBox(width: 8),
-                                Icon(Icons.calendar_today,
-                                    size: 12, color: cs.onSurfaceVariant),
+                                Icon(
+                                  task.isOverdue ? Icons.warning : Icons.schedule,
+                                  size: 12,
+                                  color: task.isOverdue
+                                      ? cs.error
+                                      : task.isDueSoon
+                                          ? Colors.orange
+                                          : cs.onSurfaceVariant,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  DateFormat.MMMd().format(task.dueDate!),
+                                  _formatDueDate(task.dueDate!),
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: cs.onSurfaceVariant,
+                                    color: task.isOverdue
+                                        ? cs.error
+                                        : task.isDueSoon
+                                            ? Colors.orange
+                                            : cs.onSurfaceVariant,
+                                    fontWeight: task.isOverdue ? FontWeight.bold : null,
+                                  ),
+                                ),
+                              ],
+                              if (task.hasReminder) ...[
+                                const SizedBox(width: 8),
+                                Icon(Icons.notifications_active,
+                                    size: 12, color: cs.primary),
+                              ],
+                              // Sync status text
+                              if (!task.isSynced) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withAlpha(30),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.cloud_off, size: 10, color: Colors.orange),
+                                      SizedBox(width: 3),
+                                      Text(
+                                        'Pending',
+                                        style: TextStyle(fontSize: 9, color: Colors.orange),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
