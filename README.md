@@ -2,7 +2,9 @@
 
 > A full-stack productivity tracking application with offline-first architecture
 
-![FocusTrail Banner](docs/images/banner.png)
+<p align="center">
+  <img src="app/assets/images/logo.png" alt="FocusTrail Logo" width="120"/>
+</p>
 
 ## 📋 Overview
 
@@ -22,14 +24,36 @@ FocusTrail is a modern task management and productivity tracking application des
 
 ## 🎥 Demo
 
-### Mobile App
-![Mobile App Demo](docs/videos/mobile-demo.gif)
+▶️ **[Watch Full Demo Video](https://drive.google.com/file/d/1intU9H6A-PD1lVY-GUhrVq3_XDZOuVXL/view?usp=sharing)**
 
-### Chrome Extension
-![Extension Demo](docs/videos/extension-demo.gif)
+### Screenshots
 
-### Dashboard Analytics
-![Dashboard](docs/images/dashboard.png)
+<table>
+  <tr>
+    <td align="center"><b>Desktop App</b></td>
+    <td align="center"><b>Mobile App</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/desktop-home.png" alt="Desktop Home" width="400"/></td>
+    <td><img src="docs/images/mobile-home.png" alt="Mobile Home" width="200"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Dashboard Analytics</b></td>
+    <td align="center"><b>Chrome Extension</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/dashboard.png" alt="Dashboard" width="400"/></td>
+    <td><img src="docs/images/extension-home.png" alt="Chrome Extension" width="200"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Settings</b></td>
+    <td align="center"><b>Trash Bin</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/settings.png" alt="Settings" width="400"/></td>
+    <td><img src="docs/images/trash.png" alt="Trash" width="400"/></td>
+  </tr>
+</table>
 
 ## 🏗️ Architecture
 
@@ -100,8 +124,8 @@ FocusTrail/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/FocusTrail.git
-   cd FocusTrail
+   git clone https://github.com/HMKazmi/focus-trail.git
+   cd focus-trail
    ```
 
 2. **Set up the Backend**
@@ -171,14 +195,22 @@ For detailed setup instructions, see the README files in each component director
 ## 🔧 Configuration
 
 ### Backend Configuration
-Edit `server/.env`:
+Copy `.env.example` to `.env` and configure:
+```bash
+cd server
+cp .env.example .env
+```
+
+Then edit `server/.env`:
 ```env
 PORT=4000
-MONGODB_URI=mongodb://localhost:27017/focustrail
-JWT_SECRET=your-secret-key-here
+MONGODB_URI=<your-mongodb-connection-string>
+JWT_SECRET=<your-secret-key-here>
 JWT_EXPIRES_IN=7d
 CORS_ORIGINS=http://localhost:3000
 ```
+
+> **Note:** Never commit your `.env` file. The MongoDB connection string and JWT secret should be kept private.
 
 ### Mobile App Configuration
 Edit `app/lib/core/config/api_config.dart`:
@@ -339,7 +371,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Authors
 
-- **Your Name** - *Initial work* - [YourGitHub](https://github.com/yourusername)
+- **Hussain Kazmi** - [HMKazmi](https://github.com/HMKazmi)
 
 ## 🙏 Acknowledgments
 
@@ -349,14 +381,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-For support, email support@focustrail.com or open an issue in the GitHub repository.
+For support, open an issue in the [GitHub repository](https://github.com/HMKazmi/focus-trail/issues).
 
 ## 🔗 Links
 
-- [Documentation](https://docs.focustrail.com)
-- [Website](https://focustrail.com)
-- [Bug Reports](https://github.com/yourusername/FocusTrail/issues)
-- [Feature Requests](https://github.com/yourusername/FocusTrail/issues)
+- [Repository](https://github.com/HMKazmi/focus-trail)
+- [Bug Reports](https://github.com/HMKazmi/focus-trail/issues)
+- [Feature Requests](https://github.com/HMKazmi/focus-trail/issues)
 
 ---
 

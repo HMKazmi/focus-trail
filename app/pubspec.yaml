@@ -1,5 +1,5 @@
-name: productivity_tracker
-description: "Productivity Tracker – offline-first task management app."
+name: focus_trail
+description: "FocusTrail - Productivity Tracker offline-first task management app."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -42,6 +42,7 @@ dependencies:
   path_provider: ^2.1.5
   share_plus: ^10.1.4
   open_filex: ^4.6.0
+  universal_html: ^2.3.0
 
 dev_dependencies:
   flutter_test:

@@ -90,34 +90,38 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       body: AnimatedGradientBackground(
         child: SafeArea(
           child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 420),
-                    child: Column(
-                      children: [
-                        const AuthGradientHeader(
-                          title: 'Create Account',
-                          subtitle: 'Join FocusTrail Today',
-                        ),
-                        const SizedBox(height: 40),
-                        GlassCard(
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Fill in your details',
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        color: cs.onSurfaceVariant,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                ),
+            child: ScrollConfiguration(
+              behavior: ScrollConfiguration.of(context).copyWith(
+                scrollbars: false,
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 420),
+                      child: Column(
+                        children: [
+                          const AuthGradientHeader(
+                            title: 'Create Account',
+                            subtitle: 'Join FocusTrail Today',
+                          ),
+                          const SizedBox(height: 40),
+                          GlassCard(
+                            child: Form(
+                              key: _formKey,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Fill in your details',
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                          color: cs.onSurfaceVariant,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                  ),
                                 const SizedBox(height: 24),
                                 GlassTextField(
                                   controller: _nameCtrl,
@@ -338,7 +342,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
           ),
         ),
       ),
-    );
+    ));
   }
 }
 

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:productivity_tracker/features/tasks/data/dto/task_dto.dart';
-import 'package:productivity_tracker/features/tasks/domain/entities/task_entity.dart';
+import 'package:focus_trail/features/tasks/data/dto/task_dto.dart';
+import 'package:focus_trail/features/tasks/domain/entities/task_entity.dart';
 
 void main() {
   group('TaskDto mapping', () {

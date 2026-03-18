@@ -15,15 +15,7 @@ const app = express();
 // ── CORS ────────────────────────────────────────────────────────────────────
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, curl)
-      if (!origin) return callback(null, true);
-      // Allow configured origins
-      if (config.corsOrigins.includes(origin)) return callback(null, true);
-      // Allow Chrome extensions
-      if (origin.startsWith('chrome-extension://')) return callback(null, true);
-      callback(new Error(`CORS: origin '${origin}' not allowed`));
-    },
+    origin: true, // Allow all origins for development
     credentials: true,
   }),
 );

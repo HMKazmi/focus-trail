@@ -5,8 +5,8 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'router.dart';
 
-class ProductivityTrackerApp extends ConsumerWidget {
-  const ProductivityTrackerApp({super.key});
+class FocusTrailApp extends ConsumerWidget {
+  const FocusTrailApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -14,7 +14,7 @@ class ProductivityTrackerApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'Productivity Tracker',
+      title: 'FocusTrail',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),

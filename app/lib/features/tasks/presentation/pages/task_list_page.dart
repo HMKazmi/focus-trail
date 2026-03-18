@@ -137,7 +137,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                               onToggleStatus: () =>
                                   ref.read(taskListProvider.notifier).toggleStatus(task),
                               onDelete: () =>
-                                  ref.read(taskListProvider.notifier).deleteTask(task.id),
+                                  ref.read(taskListProvider.notifier).trashTask(task.id),
                             );
                           },
                         ),

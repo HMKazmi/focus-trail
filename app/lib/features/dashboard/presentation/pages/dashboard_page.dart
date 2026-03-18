@@ -35,106 +35,186 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.calendar_today),
             tooltip: 'Select period',
-            onSelected: (period) => ref.read(dashboardProvider.notifier).changePeriod(period),
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'day',
-                child: Row(
-                  children: [
-                    if (state.selectedPeriod == 'day')
-                      Icon(Icons.check, color: cs.primary, size: 18),
-                    const SizedBox(width: 8),
-                    const Text('Today'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'week',
-                child: Row(
-                  children: [
-                    if (state.selectedPeriod == 'week')
-                      Icon(Icons.check, color: cs.primary, size: 18),
-                    const SizedBox(width: 8),
-                    const Text('This Week'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'month',
-                child: Row(
-                  children: [
-                    if (state.selectedPeriod == 'month')
-                      Icon(Icons.check, color: cs.primary, size: 18),
-                    const SizedBox(width: 8),
-                    const Text('This Month'),
-                  ],
-                ),
-              ),
-            ],
+            onSelected:
+                (period) =>
+                    ref.read(dashboardProvider.notifier).changePeriod(period),
+            itemBuilder:
+                (context) => [
+                  PopupMenuItem(
+                    value: 'day',
+                    child: Row(
+                      children: [
+                        if (state.selectedPeriod == 'day')
+                          Icon(Icons.check, color: cs.primary, size: 18),
+                        const SizedBox(width: 8),
+                        const Text('Today'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'week',
+                    child: Row(
+                      children: [
+                        if (state.selectedPeriod == 'week')
+                          Icon(Icons.check, color: cs.primary, size: 18),
+                        const SizedBox(width: 8),
+                        const Text('This Week'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'month',
+                    child: Row(
+                      children: [
+                        if (state.selectedPeriod == 'month')
+                          Icon(Icons.check, color: cs.primary, size: 18),
+                        const SizedBox(width: 8),
+                        const Text('This Month'),
+                      ],
+                    ),
+                  ),
+                ],
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
-            onPressed: state.isLoading ? null : () => ref.read(dashboardProvider.notifier).load(),
+            onPressed:
+                state.isLoading
+                    ? null
+                    : () => ref.read(dashboardProvider.notifier).load(),
           ),
         ],
       ),
-      body: state.isLoading && state.stats == null
-          ? _buildLoadingShimmer(context)
-          : state.error != null && state.stats == null
+      body:
+          state.isLoading && state.stats == null
+              ? _buildLoadingShimmer(context)
+              : state.error != null && state.stats == null
               ? _buildError(context, state.error!)
               : RefreshIndicator(
-                  onRefresh: () => ref.read(dashboardProvider.notifier).load(),
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Stats cards row
-                        _buildStatsRow(context, state.stats),
-                        const SizedBox(height: 24),
+                onRefresh: () => ref.read(dashboardProvider.notifier).load(),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Stats cards row
+                      _buildStatsRow(context, state.stats),
+                      const SizedBox(height: 24),
 
-                        // Streak and completion rate
-                        _buildStreakAndCompletion(context, state.stats),
-                        const SizedBox(height: 24),
+                      // Streak and completion rate
+                      _buildStreakAndCompletion(context, state.stats),
+                      const SizedBox(height: 24),
 
-                        // Status distribution pie chart
-                        _buildSectionTitle(context, 'Task Distribution'),
-                        const SizedBox(height: 12),
-                        _buildStatusPieChart(context, state.stats),
-                        const SizedBox(height: 24),
+                      // Status distribution pie chart
+                      _buildSectionTitle(context, 'Task Distribution'),
+                      const SizedBox(height: 12),
+                      _buildStatusPieChart(context, state.stats),
+                      const SizedBox(height: 24),
 
-                        // Completion trend chart
-                        _buildSectionTitle(context, 'Completion Trend'),
-                        const SizedBox(height: 12),
-                        _buildCompletionTrendChart(context, state.completionTrend),
-                        const SizedBox(height: 24),
+                      // Charts row: Completion Trend & Created vs Completed
+                      _buildChartsRow(context, state),
+                      const SizedBox(height: 24),
 
-                        // Created vs completed chart
-                        _buildSectionTitle(context, 'Created vs Completed'),
-                        const SizedBox(height: 12),
-                        _buildCreatedVsCompletedChart(context, state.createdVsCompletedTrend),
-                        const SizedBox(height: 24),
-
-                        // Priority distribution
-                        _buildSectionTitle(context, 'Priority Breakdown'),
-                        const SizedBox(height: 12),
-                        _buildPriorityBars(context, state.stats),
-                        const SizedBox(height: 32),
-                      ],
-                    ),
+                      // Priority distribution
+                      _buildSectionTitle(context, 'Priority Breakdown'),
+                      const SizedBox(height: 12),
+                      _buildPriorityBars(context, state.stats),
+                      const SizedBox(height: 32),
+                    ],
                   ),
                 ),
+              ),
+    );
+  }
+
+  Widget _buildChartsRow(BuildContext context, DashboardState state) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isNarrow = screenWidth < 700;
+
+    if (isNarrow) {
+      // Stack vertically on narrow screens
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(context, 'Completion Trend'),
+          const SizedBox(height: 12),
+          _buildCompletionTrendChart(context, state.completionTrend),
+          const SizedBox(height: 24),
+          _buildSectionTitle(context, 'Created vs Completed'),
+          const SizedBox(height: 12),
+          _buildCreatedVsCompletedChart(context, state.createdVsCompletedTrend),
+        ],
+      );
+    }
+
+    // Side by side on wider screens
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitle(context, 'Completion Trend'),
+              const SizedBox(height: 12),
+              _buildCompletionTrendChart(context, state.completionTrend),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitle(context, 'Created vs Completed'),
+              const SizedBox(height: 12),
+              _buildCreatedVsCompletedChart(
+                context,
+                state.createdVsCompletedTrend,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildSectionTitle(BuildContext context, String title) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+      style: Theme.of(
+        context,
+      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+    );
+  }
+
+  /// Card styled to match task card appearance
+  Widget _buildDashboardCard({
+    required BuildContext context,
+    required Widget child,
+    Color? borderColor,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final effectiveBorderColor = borderColor ?? cs.outline;
+
+    return Container(
+      decoration: BoxDecoration(
+        color:
+            isDark
+                ? cs.surfaceContainerHighest.withAlpha(100)
+                : cs.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color:
+              isDark
+                  ? effectiveBorderColor.withAlpha(80)
+                  : effectiveBorderColor.withAlpha(120),
+          width: isDark ? 1 : 1.5,
+        ),
+      ),
+      child: child,
     );
   }
 
@@ -142,7 +222,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth > 600;
-        final cardWidth = isWide ? (constraints.maxWidth - 48) / 4 : (constraints.maxWidth - 16) / 2;
+        final cardWidth =
+            isWide
+                ? (constraints.maxWidth - 48) / 4
+                : (constraints.maxWidth - 16) / 2;
 
         return Wrap(
           spacing: 16,
@@ -182,11 +265,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildStreakAndCompletion(BuildContext context, DashboardStats? stats) {
+  Widget _buildStreakAndCompletion(
+    BuildContext context,
+    DashboardStats? stats,
+  ) {
     final cs = Theme.of(context).colorScheme;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isNarrow = screenWidth < 400;
-    
+
     // On narrow screens, use a horizontal scrollable row or wrap
     if (isNarrow) {
       return SingleChildScrollView(
@@ -202,7 +288,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         ),
       );
     }
-    
+
     return Row(
       children: [
         Expanded(child: _buildStreakCard(context, stats, cs)),
@@ -214,8 +300,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildStreakCard(BuildContext context, DashboardStats? stats, ColorScheme cs) {
-    return Card(
+  Widget _buildStreakCard(
+    BuildContext context,
+    DashboardStats? stats,
+    ColorScheme cs,
+  ) {
+    return _buildDashboardCard(
+      context: context,
+      borderColor: Colors.orange,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Column(
@@ -225,23 +317,27 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.local_fire_department, color: Colors.orange, size: 28),
+                const Icon(
+                  Icons.local_fire_department,
+                  color: Colors.orange,
+                  size: 28,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   '${stats?.streak ?? 0}',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
               'Day Streak',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
               overflow: TextOverflow.ellipsis,
             ),
           ],
@@ -250,8 +346,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildCompletionRateCard(BuildContext context, DashboardStats? stats, ColorScheme cs) {
-    return Card(
+  Widget _buildCompletionRateCard(
+    BuildContext context,
+    DashboardStats? stats,
+    ColorScheme cs,
+  ) {
+    return _buildDashboardCard(
+      context: context,
+      borderColor: cs.primary,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
@@ -272,18 +374,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ),
                 Text(
                   '${stats?.completionRate.toStringAsFixed(0) ?? 0}%',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 6),
             Text(
               'Completion',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
               overflow: TextOverflow.ellipsis,
             ),
           ],
@@ -292,8 +394,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildAvgCompletionCard(BuildContext context, DashboardStats? stats, ColorScheme cs) {
-    return Card(
+  Widget _buildAvgCompletionCard(
+    BuildContext context,
+    DashboardStats? stats,
+    ColorScheme cs,
+  ) {
+    return _buildDashboardCard(
+      context: context,
+      borderColor: cs.tertiary,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Column(
@@ -309,18 +417,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   stats?.avgCompletionTime != null
                       ? '${stats!.avgCompletionTime!.toStringAsFixed(1)}h'
                       : '-',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
               'Avg. Time',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
               overflow: TextOverflow.ellipsis,
             ),
           ],
@@ -337,7 +445,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final total = todo + inProgress + done;
 
     if (total == 0) {
-      return Card(
+      return _buildDashboardCard(
+        context: context,
         child: Container(
           height: 200,
           alignment: Alignment.center,
@@ -349,7 +458,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       );
     }
 
-    return Card(
+    return _buildDashboardCard(
+      context: context,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -410,7 +520,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 children: [
                   _LegendItem(color: Colors.blue, label: 'To Do', value: todo),
                   const SizedBox(height: 8),
-                  _LegendItem(color: Colors.orange, label: 'In Progress', value: inProgress),
+                  _LegendItem(
+                    color: Colors.orange,
+                    label: 'In Progress',
+                    value: inProgress,
+                  ),
                   const SizedBox(height: 8),
                   _LegendItem(color: Colors.green, label: 'Done', value: done),
                 ],
@@ -422,11 +536,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildCompletionTrendChart(BuildContext context, List<TrendDataPoint> trend) {
+  Widget _buildCompletionTrendChart(
+    BuildContext context,
+    List<TrendDataPoint> trend,
+  ) {
     final cs = Theme.of(context).colorScheme;
 
     if (trend.isEmpty) {
-      return Card(
+      return _buildDashboardCard(
+        context: context,
         child: Container(
           height: 200,
           alignment: Alignment.center,
@@ -438,9 +556,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       );
     }
 
-    final maxY = trend.isEmpty ? 5.0 : (trend.map((e) => e.count).reduce((a, b) => a > b ? a : b) + 2).toDouble();
+    final maxY =
+        trend.isEmpty
+            ? 5.0
+            : (trend.map((e) => e.count).reduce((a, b) => a > b ? a : b) + 2)
+                .toDouble();
 
-    return Card(
+    return _buildDashboardCard(
+      context: context,
+      borderColor: cs.primary,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 24, 24, 16),
         child: SizedBox(
@@ -466,12 +590,17 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   sideTitles: SideTitles(
                     showTitles: true,
                     getTitlesWidget: (value, meta) {
-                      if (value.toInt() >= trend.length) return const SizedBox();
+                      if (value.toInt() >= trend.length) {
+                        return const SizedBox();
+                      }
                       return Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
                           _formatDateShort(trend[value.toInt()].date),
-                          style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: cs.onSurfaceVariant,
+                          ),
                         ),
                       );
                     },
@@ -485,37 +614,48 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       if (value == 0 || value == maxY) return const SizedBox();
                       return Text(
                         value.toInt().toString(),
-                        style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: cs.onSurfaceVariant,
+                        ),
                       );
                     },
                   ),
                 ),
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
               ),
               borderData: FlBorderData(show: false),
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
                 horizontalInterval: maxY / 4,
-                getDrawingHorizontalLine: (value) => FlLine(
-                  color: cs.outlineVariant.withAlpha(50),
-                  strokeWidth: 1,
-                ),
-              ),
-              barGroups: trend.asMap().entries.map((e) {
-                return BarChartGroupData(
-                  x: e.key,
-                  barRods: [
-                    BarChartRodData(
-                      toY: e.value.count.toDouble(),
-                      color: cs.primary,
-                      width: 16,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                getDrawingHorizontalLine:
+                    (value) => FlLine(
+                      color: cs.outlineVariant.withAlpha(50),
+                      strokeWidth: 1,
                     ),
-                  ],
-                );
-              }).toList(),
+              ),
+              barGroups:
+                  trend.asMap().entries.map((e) {
+                    return BarChartGroupData(
+                      x: e.key,
+                      barRods: [
+                        BarChartRodData(
+                          toY: e.value.count.toDouble(),
+                          color: cs.primary,
+                          width: 16,
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(4),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
             ),
           ),
         ),
@@ -523,11 +663,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildCreatedVsCompletedChart(BuildContext context, List<TrendDataPoint> trend) {
+  Widget _buildCreatedVsCompletedChart(
+    BuildContext context,
+    List<TrendDataPoint> trend,
+  ) {
     final cs = Theme.of(context).colorScheme;
 
     if (trend.isEmpty) {
-      return Card(
+      return _buildDashboardCard(
+        context: context,
         child: Container(
           height: 200,
           alignment: Alignment.center,
@@ -539,10 +683,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       );
     }
 
-    final allValues = trend.expand((e) => [e.created ?? 0, e.completed ?? 0]).toList();
-    final maxY = allValues.isEmpty ? 5.0 : (allValues.reduce((a, b) => a > b ? a : b) + 2).toDouble();
+    final allValues =
+        trend.expand((e) => [e.created ?? 0, e.completed ?? 0]).toList();
+    final maxY =
+        allValues.isEmpty
+            ? 5.0
+            : (allValues.reduce((a, b) => a > b ? a : b) + 2).toDouble();
 
-    return Card(
+    return _buildDashboardCard(
+      context: context,
+      borderColor: Colors.green,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 24, 24, 16),
         child: Column(
@@ -561,7 +711,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           final isCreated = spot.barIndex == 0;
                           return LineTooltipItem(
                             '${isCreated ? 'Created' : 'Completed'}: ${spot.y.toInt()}',
-                            TextStyle(color: isCreated ? Colors.blue : Colors.green, fontSize: 12),
+                            TextStyle(
+                              color: isCreated ? Colors.blue : Colors.green,
+                              fontSize: 12,
+                            ),
                           );
                         }).toList();
                       },
@@ -571,10 +724,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     show: true,
                     drawVerticalLine: false,
                     horizontalInterval: maxY / 4,
-                    getDrawingHorizontalLine: (value) => FlLine(
-                      color: cs.outlineVariant.withAlpha(50),
-                      strokeWidth: 1,
-                    ),
+                    getDrawingHorizontalLine:
+                        (value) => FlLine(
+                          color: cs.outlineVariant.withAlpha(50),
+                          strokeWidth: 1,
+                        ),
                   ),
                   titlesData: FlTitlesData(
                     bottomTitles: AxisTitles(
@@ -582,12 +736,17 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         showTitles: true,
                         interval: 1,
                         getTitlesWidget: (value, meta) {
-                          if (value.toInt() >= trend.length) return const SizedBox();
+                          if (value.toInt() >= trend.length) {
+                            return const SizedBox();
+                          }
                           return Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               _formatDateShort(trend[value.toInt()].date),
-                              style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant),
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: cs.onSurfaceVariant,
+                              ),
                             ),
                           );
                         },
@@ -598,24 +757,37 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         showTitles: true,
                         reservedSize: 28,
                         getTitlesWidget: (value, meta) {
-                          if (value == 0 || value == maxY) return const SizedBox();
+                          if (value == 0 || value == maxY) {
+                            return const SizedBox();
+                          }
                           return Text(
                             value.toInt().toString(),
-                            style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: cs.onSurfaceVariant,
+                            ),
                           );
                         },
                       ),
                     ),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                   ),
                   borderData: FlBorderData(show: false),
                   lineBarsData: [
                     // Created line
                     LineChartBarData(
-                      spots: trend.asMap().entries.map((e) {
-                        return FlSpot(e.key.toDouble(), (e.value.created ?? 0).toDouble());
-                      }).toList(),
+                      spots:
+                          trend.asMap().entries.map((e) {
+                            return FlSpot(
+                              e.key.toDouble(),
+                              (e.value.created ?? 0).toDouble(),
+                            );
+                          }).toList(),
                       isCurved: true,
                       color: Colors.blue,
                       barWidth: 3,
@@ -627,9 +799,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     ),
                     // Completed line
                     LineChartBarData(
-                      spots: trend.asMap().entries.map((e) {
-                        return FlSpot(e.key.toDouble(), (e.value.completed ?? 0).toDouble());
-                      }).toList(),
+                      spots:
+                          trend.asMap().entries.map((e) {
+                            return FlSpot(
+                              e.key.toDouble(),
+                              (e.value.completed ?? 0).toDouble(),
+                            );
+                          }).toList(),
                       isCurved: true,
                       color: Colors.green,
                       barWidth: 3,
@@ -650,7 +826,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               children: [
                 _LegendItem(color: Colors.blue, label: 'Created', value: null),
                 const SizedBox(width: 24),
-                _LegendItem(color: Colors.green, label: 'Completed', value: null),
+                _LegendItem(
+                  color: Colors.green,
+                  label: 'Completed',
+                  value: null,
+                ),
               ],
             ),
           ],
@@ -665,7 +845,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final high = stats?.highPriority ?? 0;
     final total = low + medium + high;
 
-    return Card(
+    return _buildDashboardCard(
+      context: context,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -715,23 +896,67 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           children: [
             Row(
               children: [
-                Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+                Expanded(
+                  child: Container(
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+                Expanded(
+                  child: Container(
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+                Expanded(
+                  child: Container(
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+                Expanded(
+                  child: Container(
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 24),
-            Container(height: 200, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+            Container(
+              height: 200,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             const SizedBox(height: 24),
-            Container(height: 200, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+            Container(
+              height: 200,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
           ],
         ),
       ),
@@ -745,11 +970,24 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 64, color: Theme.of(context).colorScheme.error),
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(height: 16),
-            Text('Failed to load dashboard', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Failed to load dashboard',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
-            Text(error, textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: () => ref.read(dashboardProvider.notifier).load(),
@@ -809,15 +1047,15 @@ class _StatCard extends StatelessWidget {
               Text(
                 value,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 title,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -910,7 +1148,9 @@ class _PriorityBar extends StatelessWidget {
           child: Text(
             '$value',
             textAlign: TextAlign.end,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
       ],

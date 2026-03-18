@@ -1,7 +1,15 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:universal_html/html.dart' as html;
 
 import '../../../../core/config/app_config.dart';
 import '../../../../core/network/dio_client.dart';
@@ -25,6 +33,7 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   late final TextEditingController _urlCtrl;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -32,18 +41,28 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final box = Hive.box(HiveBoxes.settings);
     final saved = box.get(AppConfig.baseUrlOverrideKey) as String? ?? '';
     _urlCtrl = TextEditingController(text: saved);
+
+    // Update every second to keep sync time fresh
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
     _urlCtrl.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
   void _saveUrl() {
-    Hive.box(HiveBoxes.settings).put(AppConfig.baseUrlOverrideKey, _urlCtrl.text.trim());
+    Hive.box(
+      HiveBoxes.settings,
+    ).put(AppConfig.baseUrlOverrideKey, _urlCtrl.text.trim());
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Base URL saved. Restart the app for full effect.')),
+      const SnackBar(
+        content: Text('Base URL saved. Restart the app for full effect.'),
+      ),
     );
   }
 
@@ -92,13 +111,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('API Base URL', style: Theme.of(context).textTheme.titleSmall),
+                  Text(
+                    'API Base URL',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     'Leave empty to use default (${AppConfig.baseUrl})',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -121,23 +143,47 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           Card(
             child: ListTile(
               leading: const Icon(Icons.sync),
-              title: const Text('Sync Status'),
-              subtitle: Text(
-                syncState.lastSyncTime != null
-                    ? 'Last sync: ${syncState.lastSyncTime!.toLocal()}'
-                    : 'Never synced',
-              ),
-              trailing: syncState.isSyncing
-                  ? const SizedBox(
-                      width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Badge(
-                      isLabelVisible: syncState.pendingCount > 0,
-                      label: Text('${syncState.pendingCount}'),
-                      child: IconButton(
-                        icon: const Icon(Icons.sync),
-                        onPressed: () => ref.read(syncServiceProvider.notifier).sync(),
+              title: Text('Sync Status', style: TextStyle()),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 4),
+                  Text(
+                    syncState.lastSyncTime != null
+                        ? 'Last sync: ${_formatSyncTime(syncState.lastSyncTime!)}'
+                        : 'Never synced',
+                  ),
+                  if (syncState.pendingCount > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '${syncState.pendingCount} pending changes',
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
+                ],
+              ),
+              trailing:
+                  syncState.isSyncing
+                      ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : Badge(
+                        isLabelVisible: syncState.pendingCount > 0,
+                        label: Text('${syncState.pendingCount}'),
+                        child: IconButton(
+                          icon: const Icon(Icons.sync),
+                          onPressed:
+                              () =>
+                                  ref.read(syncServiceProvider.notifier).sync(),
+                        ),
+                      ),
             ),
           ),
           const SizedBox(height: 16),
@@ -146,7 +192,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           Card(
             child: ListTile(
               leading: const Icon(Icons.download),
-              title: const Text('Export Tasks'),
+              title: Text('Export Tasks', style: TextStyle()),
               subtitle: const Text('Download your tasks as CSV or JSON'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _showExportDialog(context),
@@ -172,6 +218,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  String _formatSyncTime(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+
+    if (diff.inSeconds < 60) {
+      return '${diff.inSeconds} seconds ago';
+    } else if (diff.inMinutes < 60) {
+      return '${diff.inMinutes} minute${diff.inMinutes > 1 ? 's' : ''} ago';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours} hour${diff.inHours > 1 ? 's' : ''} ago';
+    } else {
+      return '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
+    }
+  }
+
   void _showExportDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -184,7 +245,8 @@ class _ExportDialogContent extends ConsumerStatefulWidget {
   const _ExportDialogContent();
 
   @override
-  ConsumerState<_ExportDialogContent> createState() => _ExportDialogContentState();
+  ConsumerState<_ExportDialogContent> createState() =>
+      _ExportDialogContentState();
 }
 
 class _ExportDialogContentState extends ConsumerState<_ExportDialogContent> {
@@ -200,20 +262,21 @@ class _ExportDialogContentState extends ConsumerState<_ExportDialogContent> {
     try {
       final remote = ref.read(taskRemoteDataSourceProvider);
       final csvData = await remote.exportTasksAsCsv();
-      
+
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tasks exported as CSV')),
-        );
-        // For simplicity, show the data in a dialog (in production, use share_plus)
-        _showExportResult(context, 'CSV Export', csvData);
+        await _saveFile(csvData, 'tasks_export.csv', 'text/csv');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tasks exported as CSV')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
       }
     } finally {
       if (mounted) {
@@ -231,19 +294,22 @@ class _ExportDialogContentState extends ConsumerState<_ExportDialogContent> {
     try {
       final remote = ref.read(taskRemoteDataSourceProvider);
       final jsonData = await remote.exportTasksAsJson();
-      
+      final jsonString = json.encode(jsonData);
+
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tasks exported as JSON')),
-        );
-        _showExportResult(context, 'JSON Export', jsonData.toString());
+        await _saveFile(jsonString, 'tasks_export.json', 'application/json');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tasks exported as JSON')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
       }
     } finally {
       if (mounted) {
@@ -252,25 +318,27 @@ class _ExportDialogContentState extends ConsumerState<_ExportDialogContent> {
     }
   }
 
-  void _showExportResult(BuildContext context, String title, String content) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: SingleChildScrollView(
-          child: SelectableText(
-            content,
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _saveFile(
+    String content,
+    String filename,
+    String mimeType,
+  ) async {
+    if (kIsWeb) {
+      // Web: Use download API
+      final bytes = utf8.encode(content);
+      final blob = html.Blob([bytes], mimeType);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      html.AnchorElement(href: url)
+        ..setAttribute('download', filename)
+        ..click();
+      html.Url.revokeObjectUrl(url);
+    } else {
+      // Mobile/Desktop: Use share_plus
+      final directory = await getTemporaryDirectory();
+      final file = File('${directory.path}/$filename');
+      await file.writeAsString(content);
+      await Share.shareXFiles([XFile(file.path)], text: 'Exported tasks');
+    }
   }
 
   @override
@@ -360,9 +428,9 @@ class _ExportOptionCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               description,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
             ),
           ],
         ),
